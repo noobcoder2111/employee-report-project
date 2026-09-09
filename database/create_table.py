@@ -1,24 +1,20 @@
 from database.db import get_connection
 
-DROP_TABLE_QUERY = "DROP TABLE IF EXISTS employees;"
+DROP_TABLE_QUERY = "DROP TABLE IF EXISTS production_records;"
 
 CREATE_TABLE_QUERY = """
-CREATE TABLE employees (
-    employee_id VARCHAR(10) PRIMARY KEY,
-    employee_name VARCHAR(100) NOT NULL,
-    department VARCHAR(50) NOT NULL,
-    designation VARCHAR(50) NOT NULL,
-    age INTEGER NOT NULL,
-    gender VARCHAR(10) NOT NULL,
-    joining_date DATE NOT NULL,
-    salary NUMERIC(10, 2) NOT NULL,
-    experience_years NUMERIC(4, 1) NOT NULL,
-    projects_completed INTEGER NOT NULL,
-    attendance_percentage NUMERIC(5, 2) NOT NULL,
-    performance_score NUMERIC(4, 2) NOT NULL,
-    leave_days INTEGER NOT NULL,
-    training_hours INTEGER NOT NULL,
-    status VARCHAR(10) NOT NULL
+CREATE TABLE production_records (
+    record_id SERIAL PRIMARY KEY,
+    production_date DATE NOT NULL,
+    product_name VARCHAR(100) NOT NULL,
+    machine_id VARCHAR(20) NOT NULL,
+    shift VARCHAR(20) NOT NULL,
+    operator_name VARCHAR(100) NOT NULL,
+    raw_material_used_kg NUMERIC(8, 2) NOT NULL,
+    units_produced INTEGER NOT NULL,
+    defective_units INTEGER NOT NULL,
+    downtime_minutes INTEGER NOT NULL,
+    energy_consumed_kwh NUMERIC(8, 2) NOT NULL
 );
 """
 
@@ -30,7 +26,7 @@ def create_table():
     conn.commit()
     cursor.close()
     conn.close()
-    print("✅ 'employees' table (re)created with the new schema.")
+    print("✅ 'production_records' table created (soap factory schema).")
 
 if __name__ == "__main__":
     create_table()

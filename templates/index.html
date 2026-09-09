@@ -2,136 +2,157 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Employee AI/ML Report Dashboard</title>
+    <title>Soap Factory Production Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 <div class="container my-4">
 
-    <h1 class="mb-4">📊 Employee AI/ML Report Dashboard</h1>
+    <h1 class="mb-4">🧼 Soap Factory Production Dashboard</h1>
+
+    <!-- Date Filter + Download Buttons -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body d-flex flex-wrap align-items-center gap-3">
+            <form method="GET" action="/" class="d-flex align-items-center gap-2 mb-0">
+                <label for="date" class="fw-bold mb-0">Filter by date:</label>
+                <input type="date" id="date" name="date" class="form-control" value="{{ selected_date }}">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                {% if selected_date %}
+                <a href="/" class="btn btn-outline-secondary">Clear</a>
+                {% endif %}
+            </form>
+
+            <div class="ms-auto d-flex gap-2">
+                <a href="/download/pdf{% if selected_date %}?date={{ selected_date }}{% endif %}" class="btn btn-danger">⬇ Download PDF</a>
+                <a href="/download/excel{% if selected_date %}?date={{ selected_date }}{% endif %}" class="btn btn-success">⬇ Download Excel</a>
+            </div>
+        </div>
+    </div>
+
+    {% if selected_date and summary.total_records == 0 %}
+    <div class="alert alert-warning">No production records found for {{ selected_date }}.</div>
+    {% endif %}
 
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card text-center shadow-sm">
                 <div class="card-body">
-                    <h6 class="text-muted">Total Employees</h6>
-                    <h3>{{ summary.total_employees }}</h3>
+                    <h6 class="text-muted">Total Records</h6>
+                    <h3>{{ summary.total_records }}</h3>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card text-center shadow-sm">
                 <div class="card-body">
-                    <h6 class="text-muted">Average Salary</h6>
-                    <h3>₹{{ "{:,.0f}".format(summary.average_salary) }}</h3>
+                    <h6 class="text-muted">Total Units Produced</h6>
+                    <h3>{{ summary.total_units_produced }}</h3>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card text-center shadow-sm">
                 <div class="card-body">
-                    <h6 class="text-muted">Average Performance</h6>
-                    <h3>{{ summary.average_performance }}</h3>
+                    <h6 class="text-muted">Defect Rate</h6>
+                    <h3>{{ summary.defect_rate_percent }}%</h3>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card text-center shadow-sm">
                 <div class="card-body">
-                    <h6 class="text-muted">Average Attendance</h6>
-                    <h3>{{ summary.average_attendance }}%</h3>
+                    <h6 class="text-muted">Total Downtime (min)</h6>
+                    <h3>{{ summary.total_downtime_minutes }}</h3>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-center shadow-sm bg-success-subtle">
-                <div class="card-body">
-                    <h6 class="text-muted">Active Employees</h6>
-                    <h3>{{ summary.active_count }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center shadow-sm bg-danger-subtle">
-                <div class="card-body">
-                    <h6 class="text-muted">Inactive Employees</h6>
-                    <h3>{{ summary.inactive_count }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card text-center shadow-sm bg-info-subtle">
                 <div class="card-body">
-                    <h6 class="text-muted">ML Model: Performance Score Prediction</h6>
-                    <p class="mb-0">MAE: {{ model_metrics.mae }} &nbsp;|&nbsp; R² Score: {{ model_metrics.r2_score }}</p>
+                    <h6 class="text-muted">Total Raw Material Used (kg)</h6>
+                    <h3>{{ summary.total_raw_material_kg }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center shadow-sm bg-info-subtle">
+                <div class="card-body">
+                    <h6 class="text-muted">Avg Energy Consumed (kWh)</h6>
+                    <h3>{{ summary.avg_energy_consumed_kwh }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center shadow-sm bg-info-subtle">
+                <div class="card-body">
+                    <h6 class="text-muted">ML Model: Production Prediction</h6>
+                    <p class="mb-0">MAE: {{ model_metrics.mae }} units | R²: {{ model_metrics.r2_score }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Department Breakdown -->
-    <h4>Department-wise Breakdown</h4>
+    <!-- Machine Breakdown -->
+    <h4>Machine-wise Breakdown</h4>
     <table class="table table-bordered table-striped mb-4">
         <thead class="table-dark">
             <tr>
-                <th>Department</th>
-                <th>Employee Count</th>
-                <th>Avg Performance</th>
-                <th>Avg Salary</th>
+                <th>Machine</th><th>Total Units</th><th>Total Defects</th>
+                <th>Defect Rate %</th><th>Total Downtime (min)</th><th>Avg Energy (kWh)</th>
             </tr>
         </thead>
         <tbody>
-            {% for dept in departments %}
+            {% for m in machines %}
             <tr>
-                <td>{{ dept.department }}</td>
-                <td>{{ dept.employee_count }}</td>
-                <td>{{ dept.avg_performance }}</td>
-                <td>₹{{ "{:,.0f}".format(dept.avg_salary) }}</td>
+                <td>{{ m.machine_id }}</td>
+                <td>{{ m.total_units }}</td>
+                <td>{{ m.total_defects }}</td>
+                <td>{{ m.defect_rate_percent }}</td>
+                <td>{{ m.total_downtime }}</td>
+                <td>{{ m.avg_energy }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
     <div class="row">
-        <!-- Top Performers -->
+        <!-- Product Breakdown -->
         <div class="col-md-6">
-            <h4>🏆 Top Performers</h4>
+            <h4>🧴 Product-wise Output</h4>
             <table class="table table-bordered table-sm">
                 <thead class="table-success">
-                    <tr><th>ID</th><th>Name</th><th>Dept</th><th>Score</th></tr>
+                    <tr><th>Product</th><th>Total Units</th><th>Defects</th></tr>
                 </thead>
                 <tbody>
-                    {% for emp in top_performers %}
+                    {% for p in products %}
                     <tr>
-                        <td>{{ emp.employee_id }}</td>
-                        <td>{{ emp.employee_name }}</td>
-                        <td>{{ emp.department }}</td>
-                        <td>{{ emp.performance_score }}</td>
+                        <td>{{ p.product_name }}</td>
+                        <td>{{ p.total_units }}</td>
+                        <td>{{ p.total_defects }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <!-- Low Performers -->
+        <!-- Shift Breakdown -->
         <div class="col-md-6">
-            <h4>📉 Employees with Low Performance</h4>
+            <h4>⏱ Shift-wise Output</h4>
             <table class="table table-bordered table-sm">
                 <thead class="table-warning">
-                    <tr><th>ID</th><th>Name</th><th>Dept</th><th>Score</th></tr>
+                    <tr><th>Shift</th><th>Total Units</th><th>Total Downtime (min)</th></tr>
                 </thead>
                 <tbody>
-                    {% for emp in low_performers %}
+                    {% for s in shifts %}
                     <tr>
-                        <td>{{ emp.employee_id }}</td>
-                        <td>{{ emp.employee_name }}</td>
-                        <td>{{ emp.department }}</td>
-                        <td>{{ emp.performance_score }}</td>
+                        <td>{{ s.shift }}</td>
+                        <td>{{ s.total_units }}</td>
+                        <td>{{ s.total_downtime }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -140,41 +161,36 @@
     </div>
 
     <!-- Charts -->
-    <h4 class="mt-4">📅 Employees Joined per Year</h4>
-    <canvas id="joinsChart" height="80"></canvas>
+    <h4 class="mt-4">📅 Daily Production Trend</h4>
+    <canvas id="trendChart" height="80"></canvas>
 
-    <h4 class="mt-5">🔍 Feature Importance (What Drives Performance Predictions)</h4>
+    <h4 class="mt-5">🔍 Feature Importance (What Drives Production)</h4>
     <canvas id="importanceChart" height="80"></canvas>
 
-    <!-- Full Employee Table -->
-    <h4 class="mt-5">Full Employee Report (with ML Predictions)</h4>
+    <!-- Full Records Table -->
+    <h4 class="mt-5">Full Production Report (with ML Predictions)</h4>
     <div style="max-height: 500px; overflow-y: auto;">
     <table class="table table-bordered table-sm table-hover">
         <thead class="table-dark" style="position: sticky; top: 0;">
             <tr>
-                <th>ID</th><th>Name</th><th>Dept</th><th>Designation</th>
-                <th>Experience</th><th>Attendance %</th><th>Actual Score</th>
-                <th>Predicted Score</th><th>Status</th>
+                <th>Date</th><th>Product</th><th>Machine</th><th>Shift</th>
+                <th>Operator</th><th>Raw Material (kg)</th><th>Actual Units</th>
+                <th>Predicted Units</th><th>Defects</th><th>Downtime (min)</th>
             </tr>
         </thead>
         <tbody>
-            {% for emp in employees %}
+            {% for r in records %}
             <tr>
-                <td>{{ emp.employee_id }}</td>
-                <td>{{ emp.employee_name }}</td>
-                <td>{{ emp.department }}</td>
-                <td>{{ emp.designation }}</td>
-                <td>{{ emp.experience_years }}</td>
-                <td>{{ emp.attendance_percentage }}</td>
-                <td>{{ emp.performance_score }}</td>
-                <td>{{ emp.predicted_performance }}</td>
-                <td>
-                    {% if emp.status == 'Active' %}
-                        <span class="badge bg-success">Active</span>
-                    {% else %}
-                        <span class="badge bg-secondary">Inactive</span>
-                    {% endif %}
-                </td>
+                <td>{{ r.production_date }}</td>
+                <td>{{ r.product_name }}</td>
+                <td>{{ r.machine_id }}</td>
+                <td>{{ r.shift }}</td>
+                <td>{{ r.operator_name }}</td>
+                <td>{{ r.raw_material_used_kg }}</td>
+                <td>{{ r.units_produced }}</td>
+                <td>{{ r.predicted_units }}</td>
+                <td>{{ r.defective_units }}</td>
+                <td>{{ r.downtime_minutes }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -185,12 +201,15 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-    const joinsData = {{ joins_by_year|tojson }};
-    new Chart(document.getElementById('joinsChart'), {
-        type: 'bar',
+    const trendData = {{ daily_trend|tojson }};
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
         data: {
-            labels: joinsData.map(d => d.year),
-            datasets: [{ label: 'Employees Joined', data: joinsData.map(d => d.employee_count), backgroundColor: '#0d6efd' }]
+            labels: trendData.map(d => d.production_date),
+            datasets: [
+                { label: 'Units Produced', data: trendData.map(d => d.total_units), borderColor: '#0d6efd', fill: false },
+                { label: 'Defects', data: trendData.map(d => d.total_defects), borderColor: '#dc3545', fill: false }
+            ]
         }
     });
 

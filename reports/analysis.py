@@ -1,68 +1,81 @@
 import pandas as pd
-from database.read_data import fetch_employees_df
+from database.read_data import fetch_production_df
 
 
 def get_summary_metrics(df: pd.DataFrame) -> dict:
-    """High-level numbers for the top of the dashboard."""
+    total_units = int(df["units_produced"].sum())
+    total_defects = int(df["defective_units"].sum())
+    defect_rate = round((total_defects / total_units) * 100, 2) if total_units > 0 else 0
+
     return {
-        "total_employees": len(df),
-        "average_salary": round(df["salary"].mean(), 2),
-        "average_performance": round(df["performance_score"].mean(), 2),
-        "average_attendance": round(df["attendance_percentage"].mean(), 2),
-        "active_count": int((df["status"] == "Active").sum()),
-        "inactive_count": int((df["status"] == "Inactive").sum()),
+        "total_records": len(df),
+        "total_units_produced": total_units,
+        "total_defective_units": total_defects,
+        "defect_rate_percent": defect_rate,
+        "total_downtime_minutes": int(df["downtime_minutes"].sum()),
+        "total_raw_material_kg": round(df["raw_material_used_kg"].sum(), 2),
+        "avg_energy_consumed_kwh": round(df["energy_consumed_kwh"].mean(), 2),
     }
 
 
-def get_department_breakdown(df: pd.DataFrame) -> pd.DataFrame:
-    """Employee count and average performance per department."""
-    result = df.groupby("department").agg(
-        employee_count=("employee_id", "count"),
-        avg_performance=("performance_score", "mean"),
-        avg_salary=("salary", "mean"),
+def get_machine_breakdown(df: pd.DataFrame) -> pd.DataFrame:
+    result = df.groupby("machine_id").agg(
+        total_units=("units_produced", "sum"),
+        total_defects=("defective_units", "sum"),
+        total_downtime=("downtime_minutes", "sum"),
+        avg_energy=("energy_consumed_kwh", "mean"),
     ).reset_index()
-    result["avg_performance"] = result["avg_performance"].round(2)
-    result["avg_salary"] = result["avg_salary"].round(2)
+    result["avg_energy"] = result["avg_energy"].round(2)
+    result["defect_rate_percent"] = (result["total_defects"] / result["total_units"] * 100).round(2)
     return result
 
 
-def get_top_performers(df: pd.DataFrame, n: int = 5) -> pd.DataFrame:
-    """Top N employees by performance score."""
-    return df.sort_values("performance_score", ascending=False).head(n)[
-        ["employee_id", "employee_name", "department", "performance_score"]
-    ]
+def get_product_breakdown(df: pd.DataFrame) -> pd.DataFrame:
+    result = df.groupby("product_name").agg(
+        total_units=("units_produced", "sum"),
+        total_defects=("defective_units", "sum"),
+    ).reset_index()
+    return result.sort_values("total_units", ascending=False)
 
 
-def get_low_performers(df: pd.DataFrame, n: int = 5) -> pd.DataFrame:
-    """Bottom N employees by performance score."""
-    return df.sort_values("performance_score", ascending=True).head(n)[
-        ["employee_id", "employee_name", "department", "performance_score"]
-    ]
+def get_daily_trend(df: pd.DataFrame) -> pd.DataFrame:
+    result = df.groupby("production_date").agg(
+        total_units=("units_produced", "sum"),
+        total_defects=("defective_units", "sum"),
+    ).reset_index()
+    result["production_date"] = result["production_date"].astype(str)
+    return result.sort_values("production_date")
 
 
-def get_joins_by_year(df: pd.DataFrame) -> pd.DataFrame:
-    """Count of employees who joined in each year."""
-    joining_dates = pd.to_datetime(df["joining_date"])
-    year_counts = joining_dates.dt.year.value_counts().sort_index()
-    result = year_counts.reset_index()
-    result.columns = ["year", "employee_count"]
+def get_shift_breakdown(df: pd.DataFrame) -> pd.DataFrame:
+    result = df.groupby("shift").agg(
+        total_units=("units_produced", "sum"),
+        total_downtime=("downtime_minutes", "sum"),
+    ).reset_index()
     return result
+
+
+def filter_by_date(df: pd.DataFrame, selected_date: str) -> pd.DataFrame:
+    """Filters records for one specific date (format: YYYY-MM-DD)."""
+    df = df.copy()
+    df["production_date"] = df["production_date"].astype(str)
+    return df[df["production_date"] == selected_date]
 
 
 if __name__ == "__main__":
-    df = fetch_employees_df()
+    df = fetch_production_df()
 
-    print("=== Summary Metrics ===")
+    print("=== Summary ===")
     print(get_summary_metrics(df))
 
-    print("\n=== Department Breakdown ===")
-    print(get_department_breakdown(df))
+    print("\n=== Machine Breakdown ===")
+    print(get_machine_breakdown(df))
 
-    print("\n=== Top 5 Performers ===")
-    print(get_top_performers(df))
+    print("\n=== Product Breakdown ===")
+    print(get_product_breakdown(df))
 
-    print("\n=== Bottom 5 Performers ===")
-    print(get_low_performers(df))
+    print("\n=== Shift Breakdown ===")
+    print(get_shift_breakdown(df))
 
-    print("\n=== Joins by Year ===")
-    print(get_joins_by_year(df))
+    print("\n=== Daily Trend (first 5 rows) ===")
+    print(get_daily_trend(df).head())
